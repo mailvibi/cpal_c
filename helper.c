@@ -231,7 +231,7 @@ int ham_dist(buf_t *b1, buf_t *b2)
 }
 
 
-static int cal_score(buf_t *b, double *s)
+int cal_score(buf_t *b, double *s)
 {
   int i;
   double t_aplha = 0;
@@ -247,47 +247,84 @@ static int cal_score(buf_t *b, double *s)
   return 0;
 }
 
-int get_single_key_xor_of_buf(buf_t *b, unsigned char *isenc, unsigned char *key)
+
+int bruteforce_xor_key(buf_t *b, unsigned char *key)
 {
+  double score;
+  const double threshold = .8;
+  for (unsigned char i = 0 ; i < 0xFF ; i++) {
+    score = 0;
+    buf_t *t = xor_buf_with_key(b, i);
+    scoped_ptr(t) {
+      cal_score(b, &score);
+      if (score >= threshold) {
+        info("Possible Decryption [score = %f, key = %u]: %s", score, i, t->val);
+        *key = i;
+      }
+    }
+  }
   return 0;
 }
-int get_single_key_xor(char *ip, unsigned char *isenc, unsigned char *key)
+
+
+static int _get_single_key_xor_of_buf(buf_t *b, unsigned char *isenc, unsigned char *key)
 {
-  char *freq_map = "ETAOIN SHRDLUetaoinshrdlu";
-  buf_t *h, *d;
-  char freq[256] = {0};
+  const char *freq_map = "ETAOIN SHRDLUetaoinshrdlu";
+  unsigned char freq[256] = {0};
   int tmp_max_freq = 0, max_freq_indx = 0;
   int i;
   unsigned char tmpkey;
   double score;
+  const double threshold_score = 0.8;
+  buf_t *d;
+
+  for (i = 0 ; i < b->size ; i++) {
+    freq[b->val[i]]++;
+    if (freq[b->val[i]] > tmp_max_freq) {
+      tmp_max_freq = freq[b->val[i]];
+      max_freq_indx = i;
+    }
+  }
+
+  for (tmpkey = 0, i = 0 ; i < strlen(freq_map) ; i++) {
+      tmpkey = freq_map[i] ^ b->val[max_freq_indx];
+      d = xor_buf_with_key(b, tmpkey);
+      scoped_ptr(d) { 
+        cal_score(d, &score);
+        if (score >= threshold_score) {
+          //dump_buf("Possible Decryption : ", 0, d->val, d->size);
+          //info("Possible Decryption [score = %f, key = %u]: %s", score, tmpkey, d->val);
+          *isenc = 1;
+          *key = tmpkey;
+        } else {
+//         dbg("Cannot decrypt - key = %hhx, score = %f", tmpkey, score);
+        }
+      }
+  }
+  return 0;
+}
+
+int get_single_key_xor_of_buf(buf_t *b, unsigned char *isenc, unsigned char *key)
+{
+  if (!b || !isenc || !key) {
+    err("Invalid argument");
+    return -1;
+  }
+  return _get_single_key_xor_of_buf(b, isenc, key);
+}
+
+int get_single_key_xor(char *ip, unsigned char *isenc, unsigned char *key)
+{
+  buf_t *h;
+  if (!ip || !isenc || !key) {
+    err("Invalid argument");
+    return -1;
+  }
 
   *isenc = 0;
 	h = str_to_hex(ip, strlen(ip));
 	if (!h)
 		return -1;
 	//dump_buf("In Hex : ", 0, h->val, h->size);
-
-  for (i = 0 ; i < h->size ; i++) {
-    freq[h->val[i]]++;
-    if (freq[h->val[i]] > tmp_max_freq) {
-      tmp_max_freq = freq[h->val[i]];
-      max_freq_indx = i;
-    }
-  }
-  for (tmpkey = 0, i = 0 ; i < strlen(freq_map) ; i++) {
-      tmpkey = freq_map[i] ^ h->val[max_freq_indx];
-      d = xor_buf_with_key(h, tmpkey);
-      scoped_ptr(d) { 
-        cal_score(d, &score);
-        if (score == 1.0) {
-          //dump_buf("Possible Decryption : ", 0, d->val, d->size);
-          info("Possible Decryption [score = %f, key = %u]: %s", score, tmpkey, d->val);
-          *isenc = 1;
-          *key = tmpkey;
-        } else {
-  //       dbg("Cannot decrypt - key = %hhx, score = %f", tmpkey, score);
-        }
-      }
-  }
-  return 0;
+  return _get_single_key_xor_of_buf(h, isenc, key);
 }

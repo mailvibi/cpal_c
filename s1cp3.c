@@ -10,21 +10,6 @@ struct key_score {
   double score;
 };
 
-int cal_score(buf_t *b, double *s)
-{
-  int i;
-  double t_aplha = 0;
-  if (!b || !b->size || !s) {
-    err("Invalid Arguments");
-    return -1;
-  }
-  for (i = 0 ; i < b->size ; i++) {
-    if (isalpha(b->val[i]))
-      t_aplha++;
-  }
-  *s = t_aplha / b->size;
-  return 0;
-}
 
 int main(void)
 {

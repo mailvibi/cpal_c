@@ -41,5 +41,7 @@ buf_t* xor_repeated_key(buf_t *p, buf_t *k);
 int ham_dist(buf_t *b1, buf_t *b2);
 int ham_dist_arr(unsigned char *b1, unsigned char *b2, unsigned int b1sz, unsigned int b2sz);
 int get_single_key_xor(char *ip, unsigned char *isenc, unsigned char *key);
+int get_single_key_xor_of_buf(buf_t *b, unsigned char *isenc, unsigned char *key);
+int cal_score(buf_t *b, double *s);
 
 #endif 
