@@ -147,7 +147,7 @@ int main(int argc, char **argv)
   buf_t *dec = xor_repeated_key(ip, key);
   info("Decrypted content : %s", dec->val);
   //dump_buf("converted hex ", 0, ip);
-
+  free(dec);
 err2 :
   free(key);
 err1 :

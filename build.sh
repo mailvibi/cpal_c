@@ -59,7 +59,7 @@ build_one()
     return
    fi
   echo "Compiling $cfile to $file"
-  clang -o $file -I . helper.c $cfile
+  clang -o $file -I . helper.c $cfile -lcrypto
     if [ $? -ne 0 ] ; then 
       echo "Error compiling $cfile"
       return
@@ -68,6 +68,6 @@ build_one()
 
 SETNUM=1
 CH_END=8
-build_set $SETNUM $CH_END
+#build_set $SETNUM $CH_END
 #clean_set $SETNUM $CH_END
-#build_one $SETNUM 6
+build_one $SETNUM 7
